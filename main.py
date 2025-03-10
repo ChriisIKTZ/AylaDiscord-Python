@@ -71,7 +71,7 @@ async def on_message(message):
 
 @bot.event
 async def on_member_join(membro: discord.Member):
-    canal = bot.get_channel(1330013786593296446)  # ID do canal
+    canal = bot.get_channel(00000)  # ID do canal
     if canal:
         await canal.send(f"{membro.mention} Olá!")
 
@@ -116,7 +116,7 @@ async def divulgar(interaction: discord.Interaction, link: str):
     )
     div_embed.set_footer(text=f"Enviado por: @{interaction.user.name}", icon_url=interaction.user.avatar.url)
 
-    canal_div = bot.get_channel(1330018559564189847)  # ID do canal
+    canal_div = bot.get_channel(00000)  # ID do canal
     if canal_div:
         await canal_div.send(embed=div_embed)
     
