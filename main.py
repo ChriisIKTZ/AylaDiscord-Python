@@ -4,6 +4,7 @@ from discord import app_commands
 import os
 import time
 import random
+import json
 import asyncio
 import traceback 
 from dotenv import load_dotenv
@@ -27,12 +28,10 @@ intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 ##--- RICH PRESENCE ---##
-
 activities = [
     discord.Game("TL Viih - Discord 🍄"),
     discord.Activity(type=discord.ActivityType.watching, name="Lives da Viih 🍄"),
     discord.Game("Ajudando no servidor 😎"),
-    #discord.Activity(type=discord.ActivityType.watching, name="streams de games 🎮"),
     discord.Activity(type=discord.ActivityType.listening, name="Mr. Kitty - After Dark")
 ]
 
@@ -43,10 +42,8 @@ async def change_activity():
         await bot.change_presence(activity=activity)
 
 ##--- INICIALIZAÇÃO DO BOT ---##
-
 @bot.event
 async def on_ready():
-    """Evento acionado quando o bot é iniciado."""
     print(f"✅ Bot inicializado com sucesso!")
     bot.loop.create_task(change_activity())  # Inicia a troca automática de status
     try:
@@ -55,15 +52,27 @@ async def on_ready():
     except Exception as e:
         print(f"❌ Erro ao sincronizar comandos: {e}")
 
+##--- EVENTO DE MENÇÃO AO BOT E CONTAGEM DE MENSAGENS ---##
+def load_ranking():
+    try:
+        with open("ranking.json", "r") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
 
-##--- EVENTO DE MENÇÃO AO BOT ---##
+def save_ranking(data):
+    with open("ranking.json", "w") as f:
+        json.dump(data, f, indent=4)
+
+ranking = load_ranking()  # Carregar dados ao iniciar
 
 @bot.event
 async def on_message(message):
     if message.author.bot:
         return  # Ignora mensagens de bots
 
-    if bot.user.mentioned_in(message) and message.content.strip() == f"<@{bot.user.id}>":
+    # ✅ Responde se for mencionado
+    if bot.user in message.mentions:
         respostas = [
             'Diga',
             '🍆',
@@ -72,82 +81,96 @@ async def on_message(message):
         ]
         await message.channel.send(random.choice(respostas))
 
+    # ✅ Contagem de mensagens para ranking
+    user_id = str(message.author.id)
+
+    # Usando o apelido (nickname) se disponível, ou o nome de usuário normal
+    user_name = message.author.display_name
+
+    if user_id in ranking:
+        ranking[user_id]["messages"] += 1
+    else:
+        ranking[user_id] = {"name": user_name, "messages": 1}
+
+    save_ranking(ranking)  # Salva no JSON
+
     await bot.process_commands(message)  # Processa comandos normalmente
 
 ##--- EVENTO DE ENTRADA DE MEMBRO ---##
-
 @bot.event
 async def on_member_join(membro: discord.Member):
-    """Evento acionado quando um novo membro entra no servidor."""
     canal = bot.get_channel(00000)  # ID do canal
     if canal:
         await canal.send(f"{membro.mention} Olá!")
 
 ##--- COMANDO /STATUS ---##
-
 @bot.tree.command(name="status", description="Verificar a latência do bot")
 async def status(interaction: discord.Interaction):
-    """Comando para verificar a latência do bot e o tempo de atividade."""
-    latency = bot.latency * 1000  # Converte para milissegundos
-    uptime = time.time() - start_time  # Calcula o tempo de atividade
-    await interaction.response.send_message(f"✅ Está tudo ok! Latência atual: {latency:.2f} ms\nTempo de atividade: {uptime:.0f} segundos", ephemeral=True)
+    latency = bot.latency * 1000
+    uptime = time.time() - start_time
+    await interaction.response.send_message(
+        f"✅ Está tudo ok! Latência: {latency:.2f} ms\nTempo de atividade: {uptime:.0f} segundos",
+        ephemeral=True
+    )
 
 ##--- COMANDO /INFO ---##
-
 @bot.tree.command(name="info", description="Informações sobre o bot")
 async def info(interaction: discord.Interaction):
     info_embed = discord.Embed(
-        title="Nome: Ayla🌺",
-        description="Olá, estou atualmente na versão 0.1, sendo programada em Python!",
-        color=discord.Color.green()
+        title="🌸 **Ayla Bot** 🌸",
+        description="Olá, sou o Ayla! Estou aqui para ajudar no servidor com recursos incríveis e interações divertidas!",
+        color=discord.Color.pink()  # Escolha uma cor que combina com o estilo do bot
     )
-
-    imagem_path = "img/avatar_Ayla.jpg"
     
-    if os.path.exists(imagem_path):
-        imagem = discord.File(imagem_path, filename="avatar.jpg")
-        info_embed.set_thumbnail(url="attachment://avatar.jpg")
-        await interaction.response.send_message(embed=info_embed, file=imagem)
-    else:
-        info_embed.set_footer(text="⚠️ Imagem não encontrada.")
-        await interaction.response.send_message(embed=info_embed, ephemeral=True)
-
-##--- COMANDO /DIVULGAR ---##
-
-@bot.tree.command(name="divulgar", description="Divulgar uma mensagem")
-async def divulgar(interaction: discord.Interaction, link: str):
-    """Comando para divulgar uma mensagem com um link."""
-    # Verifica se o link é válido
-    if not link.startswith("http"):
-        await interaction.response.send_message("❌ O link fornecido não parece válido. Por favor, forneça um link completo.", ephemeral=True)
-        return
-
-    # Verifica se o usuário tem permissões adequadas
-    if not (interaction.user.guild_permissions.administrator or interaction.user.guild_permissions.manage_messages):
-        await interaction.response.send_message("❌ Você precisa de permissões adequadas para usar este comando.", ephemeral=True)
-        return
-
-    # Obtém o avatar do usuário (caso ele não tenha, usa o padrão)
-    avatar_url = interaction.user.avatar.url if interaction.user.avatar else interaction.user.default_avatar.url
-
-    div_embed = discord.Embed(
-        title="Divulgação 📢",
-        description=f"Mensagem de divulgação: {link}",
-        color=discord.Color.gold()
+    info_embed.add_field(
+        name="🔧 Versão:",
+        value="**v0.1** - Em constante atualização para ficar ainda melhor! 🚀",
+        inline=False
     )
-    div_embed.set_footer(text=f"Enviado por: @{interaction.user.name}", icon_url=avatar_url)
+    
+    info_embed.add_field(
+        name="📜 **Comandos Disponíveis:**",
+        value=(
+            "• `/status`: Verifique a latência do bot e o tempo de atividade.\n"
+            "• `/ranking`: Veja o ranking de mensagens do servidor.\n"
+            "• `/info`: Informações sobre o Ayla Bot.\n"
+            "• `/limpar`: Limpar mensagens do canal.\n"
+            "• `/divulgar [link]`: Divulgue um link no servidor.\n"
+            "• `/ajuda`: Solicite ajuda sobre algum comando ou recurso.\n"
+        ),
+        inline=False
+    )
 
-    canal_div = bot.get_channel(00000)  # ID do canal
-    if canal_div:
-        await canal_div.send(embed=div_embed)
+    info_embed.add_field(
+        name="📅 Última Atualização:",
+        value="Em breve! Estou sempre sendo aprimorado para mais diversão e utilidade! 🔄",
+        inline=False
+    )
 
-    await interaction.response.send_message("✅ Mensagem de divulgação enviada com sucesso!", ephemeral=True)
+    info_embed.set_thumbnail(url="https://i.imgur.com/MG3ixny.png")  # URL para uma imagem de miniatura bonita
+    info_embed.set_footer(text="Bot criado com 💖 por Chriis ✨", icon_url="https://i.imgur.com/CoCnKIT.jpeg")  # Footer personalizado
 
-##--- EXCLUIR MENSSAGEM ---##
+    await interaction.response.send_message(embed=info_embed)
 
+##--- COMANDO /RANKING ---##
+@bot.tree.command(name="ranking", description="Mostra o ranking de mensagens do servidor")
+async def ranking_command(interaction: discord.Interaction):
+    ranking_data = load_ranking()
+    if not ranking_data:
+        await interaction.response.send_message("Ainda não há mensagens registradas!", ephemeral=True)
+        return
+
+    sorted_ranking = sorted(ranking_data.items(), key=lambda x: x[1]["messages"], reverse=True)
+    top_users = "\n".join(
+        [f"**{i+1}. {data['name']}** • {data['messages']} mensagens" for i, (_, data) in enumerate(sorted_ranking[:10])]
+    )
+
+    embed = discord.Embed(title="🏆 Ranking de Mensagens", description=top_users, color=discord.Color.gold())
+    await interaction.response.send_message(embed=embed)
+
+##--- COMANDO /LIMPAR ---##
 @bot.tree.command(name="limpar", description="Remove uma quantidade de mensagens de um canal")
 async def limpar(interaction: discord.Interaction, quantidade: int):
-    """Comando para excluir mensagens no chat."""
     if not interaction.user.guild_permissions.manage_messages:
         await interaction.response.send_message('❌ Você não tem permissões para usar este comando.', ephemeral=True)
         return
@@ -162,14 +185,11 @@ async def limpar(interaction: discord.Interaction, quantidade: int):
     except discord.HTTPException as e:
         await interaction.followup.send(f"❌ Ocorreu um erro ao tentar excluir mensagens: {e}", ephemeral=True)
 
-
 ##--- PROCESSAMENTO DE ERROS ---##
-
 @bot.event
 async def on_error(event, *args, **kwargs):
-    """Captura e exibe erros detalhados."""
     print(f"❌ Erro no evento {event}: {args} {kwargs}")
-    traceback.print_exc()  # Exibe a stacktrace completa do erro
+    traceback.print_exc()
 
 # Inicia o bot com o token carregado
 bot.run(TOKEN)
