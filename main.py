@@ -37,15 +37,20 @@ activities = [
 
 async def change_activity():
     while True:
-        await asyncio.sleep(60)  # Muda a atividade a cada 60 segundos (1 minuto)
-        activity = random.choice(activities)  # Escolhe uma atividade aleatória da lista
-        await bot.change_presence(activity=activity)
+        try:
+            await asyncio.sleep(60)  # Aguarda 1 minuto antes de mudar a atividade
+            activity = random.choice(activities)
+            await bot.change_presence(activity=activity)
+        except (discord.HTTPException, discord.ConnectionClosed, asyncio.CancelledError):
+            print("⚠️ Conexão perdida ao tentar atualizar presença. Tentando novamente em 10 segundos...")
+            await asyncio.sleep(10)  # Aguarda antes de tentar novamente
 
 ##--- INICIALIZAÇÃO DO BOT ---##
 @bot.event
 async def on_ready():
     print(f"✅ Bot inicializado com sucesso!")
-    bot.loop.create_task(change_activity())  # Inicia a troca automática de status
+    bot.loop.create_task(change_activity()) # Inicia a mudança de atividades
+
     try:
         await bot.tree.sync()
         print("✅ Comandos Slash sincronizados com sucesso!")
@@ -136,7 +141,6 @@ async def info(interaction: discord.Interaction):
             "• `/info`: Informações sobre o Ayla Bot.\n"
             "• `/limpar`: Limpar mensagens do canal.\n"
             "• `/divulgar [link]`: Divulgue um link no servidor.\n"
-            "• `/ajuda`: Solicite ajuda sobre algum comando ou recurso.\n"
         ),
         inline=False
     )
@@ -185,11 +189,60 @@ async def limpar(interaction: discord.Interaction, quantidade: int):
     except discord.HTTPException as e:
         await interaction.followup.send(f"❌ Ocorreu um erro ao tentar excluir mensagens: {e}", ephemeral=True)
 
+##--- COMANDO /DIVULGAR ---##
+@bot.tree.command(name="divulgar", description="Divulgar uma mensagem")
+async def divulgar(interaction: discord.Interaction, link: str):
+    """Comando para divulgar uma mensagem com um link."""
+    # Verifica se o link é válido
+    if not link.startswith("http"):
+        await interaction.response.send_message("❌ O link fornecido não parece válido. Por favor, forneça um link completo.", ephemeral=True)
+        return
+
+    # Verifica se o usuário tem permissões adequadas
+    if not (interaction.user.guild_permissions.administrator or interaction.user.guild_permissions.manage_messages):
+        await interaction.response.send_message("❌ Você precisa de permissões adequadas para usar este comando.", ephemeral=True)
+        return
+
+    # Obtém o avatar do usuário (caso ele não tenha, usa o padrão)
+    avatar_url = interaction.user.avatar.url if interaction.user.avatar else interaction.user.default_avatar.url
+
+    div_embed = discord.Embed(
+        title="Divulgação 📢",
+        description=f"Mensagem de divulgação: {link}",
+        color=discord.Color.gold()
+    )
+    div_embed.set_footer(text=f"Enviado por: @{interaction.user.name}", icon_url=avatar_url)
+
+    canal_div = bot.get_channel(00000)  # ID do canal
+    if canal_div:
+        await canal_div.send(embed=div_embed)
+
+    await interaction.response.send_message("✅ Mensagem de divulgação enviada com sucesso!", ephemeral=True)
+
 ##--- PROCESSAMENTO DE ERROS ---##
 @bot.event
 async def on_error(event, *args, **kwargs):
-    print(f"❌ Erro no evento {event}: {args} {kwargs}")
-    traceback.print_exc()
+    erro = traceback.format_exc()
+    
+    # Canal de logs de erro
+    canal_erro = bot.get_channel(00000)  # ID do canal
+    
+    if canal_erro:
+        embed = discord.Embed(
+            title="❌ Erro no Bot",
+            description=f"**Evento:** `{event}`\n```py\n{erro[:4000]}```",  # Limite de caracteres do embed
+            color=discord.Color.red()
+        )
+        embed.set_footer(text="Verifique o erro e corrija!", icon_url="https://i.imgur.com/CoCnKIT.jpeg")
+        await canal_erro.send(embed=embed)
+    
+    print(f"❌ Erro no evento {event}:\n{erro}")  # Mantém o print para debug no terminal
+
+
+@bot.event
+async def on_disconnect():
+    print("⚠️   O bot foi desconectado! Tentando reconectar...")
+    bot.loop.create_task(change_activity())  # Reinicia a troca de atividades após reconexão
 
 # Inicia o bot com o token carregado
 bot.run(TOKEN)
