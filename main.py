@@ -8,6 +8,7 @@ import json
 import asyncio
 import traceback 
 from dotenv import load_dotenv
+from discord.ui import Button, View
 
 # Carregar variáveis de ambiente do arquivo .env
 load_dotenv()
