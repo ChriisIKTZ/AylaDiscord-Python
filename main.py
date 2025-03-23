@@ -156,6 +156,27 @@ async def info(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=info_embed)
 
+##--- COMANDO /LIVE ---##
+@bot.tree.command(name="live", description="lives da Viih")
+async def info(interaction: discord.Interaction):
+    live_embed = discord.Embed(
+        title="🍄 **LIVES DA VIIH** 🍄",
+        description="Olá meu nome é Viih, sou nova na plataforma e quero muito ser uma streamer conhecida. Espero que gostem das minhas lives e se divirtam. 🩷🌈",
+        color=discord.Color.pink()
+    )
+    live_embed.set_thumbnail(url="https://i.imgur.com/zK2DR2F.jpeg")
+
+    # Criando botões
+    twitch_button = Button(label="Acessar Twitch", url="https://www.twitch.tv/nnico_robiin", style=discord.ButtonStyle.link)
+    tiktok_button = Button(label="Acessar TikTok", url="https://www.tiktok.com/@jardim_da_viih", style=discord.ButtonStyle.link)
+
+    # Criando a view e adicionando os botões
+    view = View()
+    view.add_item(twitch_button)
+    view.add_item(tiktok_button)
+
+    await interaction.response.send_message(embed=live_embed, view=view)
+
 ##--- COMANDO /RANKING ---##
 @bot.tree.command(name="ranking", description="Mostra o ranking de mensagens do servidor")
 async def ranking_command(interaction: discord.Interaction):
