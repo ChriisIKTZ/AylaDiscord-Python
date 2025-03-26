@@ -58,19 +58,7 @@ async def on_ready():
     except Exception as e:
         print(f"❌ Erro ao sincronizar comandos: {e}")
 
-##--- EVENTO DE MENÇÃO AO BOT E CONTAGEM DE MENSAGENS ---##
-def load_ranking():
-    try:
-        with open("ranking.json", "r") as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {}
-
-def save_ranking(data):
-    with open("ranking.json", "w") as f:
-        json.dump(data, f, indent=4)
-
-ranking = load_ranking()  # Carregar dados ao iniciar
+##--- EVENTO DE MENÇÃO AO BOT ---##
 
 @bot.event
 async def on_message(message):
@@ -86,21 +74,6 @@ async def on_message(message):
             'Para de mencionar buceta...',
         ]
         await message.channel.send(random.choice(respostas))
-
-    # ✅ Contagem de mensagens para ranking
-    user_id = str(message.author.id)
-
-    # Usando o apelido (nickname) se disponível, ou o nome de usuário normal
-    user_name = message.author.display_name
-
-    if user_id in ranking:
-        ranking[user_id]["messages"] += 1
-    else:
-        ranking[user_id] = {"name": user_name, "messages": 1}
-
-    save_ranking(ranking)  # Salva no JSON
-
-    await bot.process_commands(message)  # Processa comandos normalmente
 
 ##--- EVENTO DE ENTRADA DE MEMBRO ---##
 @bot.event
@@ -138,9 +111,8 @@ async def info(interaction: discord.Interaction):
         name="📜 **Comandos Disponíveis:**",
         value=(
             "• `/status`: Verifique a latência do bot e o tempo de atividade.\n"
-            "• `/ranking`: Veja o ranking de mensagens do servidor.\n"
             "• `/info`: Informações sobre o Ayla Bot.\n"
-            "• `/limpar`: Limpar mensagens do canal.\n"
+            "• `/live`: informações sobre o canal da Viih.\n"
             "• `/divulgar [link]`: Divulgue um link no servidor.\n"
         ),
         inline=False
@@ -156,43 +128,6 @@ async def info(interaction: discord.Interaction):
     info_embed.set_footer(text="Bot criado com 💖 por Chriis ✨", icon_url="https://i.imgur.com/CoCnKIT.jpeg")  # Footer personalizado
 
     await interaction.response.send_message(embed=info_embed)
-
-##--- COMANDO /LIVE ---##
-@bot.tree.command(name="live", description="lives da Viih")
-async def info(interaction: discord.Interaction):
-    live_embed = discord.Embed(
-        title="🍄 **LIVES DA VIIH** 🍄",
-        description="Olá meu nome é Viih, sou nova na plataforma e quero muito ser uma streamer conhecida. Espero que gostem das minhas lives e se divirtam. 🩷🌈",
-        color=discord.Color.pink()
-    )
-    live_embed.set_thumbnail(url="https://i.imgur.com/zK2DR2F.jpeg")
-
-    # Criando botões
-    twitch_button = Button(label="Acessar Twitch", url="https://www.twitch.tv/nnico_robiin", style=discord.ButtonStyle.link)
-    tiktok_button = Button(label="Acessar TikTok", url="https://www.tiktok.com/@jardim_da_viih", style=discord.ButtonStyle.link)
-
-    # Criando a view e adicionando os botões
-    view = View()
-    view.add_item(twitch_button)
-    view.add_item(tiktok_button)
-
-    await interaction.response.send_message(embed=live_embed, view=view)
-
-##--- COMANDO /RANKING ---##
-@bot.tree.command(name="ranking", description="Mostra o ranking de mensagens do servidor")
-async def ranking_command(interaction: discord.Interaction):
-    ranking_data = load_ranking()
-    if not ranking_data:
-        await interaction.response.send_message("Ainda não há mensagens registradas!", ephemeral=True)
-        return
-
-    sorted_ranking = sorted(ranking_data.items(), key=lambda x: x[1]["messages"], reverse=True)
-    top_users = "\n".join(
-        [f"**{i+1}. {data['name']}** • {data['messages']} mensagens" for i, (_, data) in enumerate(sorted_ranking[:10])]
-    )
-
-    embed = discord.Embed(title="🏆 Ranking de Mensagens", description=top_users, color=discord.Color.gold())
-    await interaction.response.send_message(embed=embed)
 
 ##--- COMANDO /LIMPAR ---##
 @bot.tree.command(name="limpar", description="Remove uma quantidade de mensagens de um canal")
@@ -241,13 +176,66 @@ async def divulgar(interaction: discord.Interaction, link: str):
 
     await interaction.response.send_message("✅ Mensagem de divulgação enviada com sucesso!", ephemeral=True)
 
+        ##                                ##
+        ##--- COMANDOS DA LIVE DA VIIH ---##
+        ##                                ##
+
+##--- COMANDO /LIVE ---##
+@bot.tree.command(name="live", description="lives da Viih")
+async def info(interaction: discord.Interaction):
+    live_embed = discord.Embed(
+        title="🍄 **LIVES DA VIIH** 🍄",
+        description="Olá meu nome é Viih, sou nova na plataforma e quero muito ser uma streamer conhecida. Espero que gostem das minhas lives e se divirtam. 🩷🌈",
+        color=discord.Color.pink()
+    )
+    live_embed.set_thumbnail(url="https://i.imgur.com/zK2DR2F.jpeg")
+
+    # Criando botões
+    twitch_button = Button(label="Acessar Twitch", url="https://www.twitch.tv/nnico_robiin", style=discord.ButtonStyle.link)
+    tiktok_button = Button(label="Acessar TikTok", url="https://www.tiktok.com/@jardim_da_viih", style=discord.ButtonStyle.link)
+
+    # Criando a view e adicionando os botões
+    view = View()
+    view.add_item(twitch_button)
+    view.add_item(tiktok_button)
+
+    await interaction.response.send_message(embed=live_embed, view=view)
+
+##--- COMANDO /DIVULGAR LIVE ---##
+@bot.tree.command(name="divulgar_live", description="Divulga a live da Viih no canal de divulgação")
+async def divulgar_live(interaction: discord.Interaction):
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("❌ Você precisa ser administrador para usar este comando.", ephemeral=True)
+        return
+
+    canal_divulgacao = bot.get_channel(00000)  # ID do canal de divulgação
+    cargo_mencao = interaction.guild.get_role(00000)  # ID do cargo a ser mencionado
+
+    if not canal_divulgacao or not cargo_mencao:
+        await interaction.response.send_message("❌ O canal ou cargo não foi encontrado.", ephemeral=True)
+        return
+
+    live_embed = discord.Embed(
+        title="🔴 LIVE AO VIVO!",
+        description="A Viih está ao vivo! Venha assistir e se divertir! 🌸🎮",
+        color=discord.Color.red(),
+        url="https://www.twitch.tv/nnico_robiin"
+    )
+    live_embed.set_thumbnail(url="https://i.imgur.com/3q6IuqP.png")
+    live_embed.add_field(name="🎥 Link da Live:", value="[Clique aqui para assistir!](https://www.twitch.tv/nnico_robiin)", inline=False)
+    live_embed.set_footer(text="Apoie a Viih! 💖", icon_url="https://i.imgur.com/zK2DR2F.jpeg")
+
+    await canal_divulgacao.send(f"{cargo_mencao.mention} A Viih está AO VIVO! 🔴", embed=live_embed)
+    await interaction.response.send_message("✅ Live divulgada com sucesso!", ephemeral=True)
+
+
 ##--- PROCESSAMENTO DE ERROS ---##
 @bot.event
 async def on_error(event, *args, **kwargs):
     erro = traceback.format_exc()
     
     # Canal de logs de erro
-    canal_erro = bot.get_channel(00000)  # ID do canal
+    canal_erro = bot.get_channel(00000)
     
     if canal_erro:
         embed = discord.Embed(
