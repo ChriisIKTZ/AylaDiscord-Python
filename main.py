@@ -10,23 +10,30 @@ import traceback
 from dotenv import load_dotenv
 from discord.ui import Button, View
 
-# Carregar variáveis de ambiente do arquivo .env
-load_dotenv()
 
-# Registra o tempo de início do bot
-start_time = time.time()
+##--- INICIALIZAÇÃO DO BOT ---##
+load_dotenv() # Carregar variáveis de ambiente do arquivo .env
+start_time = time.time() # Registra o tempo de início do bot
 
-# Carrega o token do arquivo .env
-TOKEN = os.getenv("DISCORD_TOKEN")
-
-# Verifica se o token foi carregado corretamente
+TOKEN = os.getenv("DISCORD_TOKEN") # Carrega o token do arquivo .env
 if TOKEN is None:
-    print("❌ Token não encontrado. Verifique o arquivo .env.")
+    print("❌ Token não encontrado. Verifique o arquivo .env.") # Verifica se o token foi carregado corretamente
     exit()
 
-# Define as permissões do bot
-intents = discord.Intents.all()
+intents = discord.Intents.all() # Define as permissões do bot
 bot = commands.Bot(command_prefix="!", intents=intents)
+
+@bot.event
+async def on_ready():
+    print(f"✅ Bot inicializado com sucesso!")
+    bot.loop.create_task(change_activity()) # Inicia a mudança de atividades
+
+    try:
+        await bot.tree.sync()
+        print("✅ Comandos Slash sincronizados com sucesso!")
+    except Exception as e:
+        print(f"❌ Erro ao sincronizar comandos: {e}")
+
 
 ##--- RICH PRESENCE ---##
 activities = [
@@ -46,20 +53,8 @@ async def change_activity():
             print("⚠️ Conexão perdida ao tentar atualizar presença. Tentando novamente em 10 segundos...")
             await asyncio.sleep(10)  # Aguarda antes de tentar novamente
 
-##--- INICIALIZAÇÃO DO BOT ---##
-@bot.event
-async def on_ready():
-    print(f"✅ Bot inicializado com sucesso!")
-    bot.loop.create_task(change_activity()) # Inicia a mudança de atividades
 
-    try:
-        await bot.tree.sync()
-        print("✅ Comandos Slash sincronizados com sucesso!")
-    except Exception as e:
-        print(f"❌ Erro ao sincronizar comandos: {e}")
-
-##--- EVENTO DE MENÇÃO AO BOT ---##
-
+##--- EVENTO DE MENCAO AO BOT ---##
 @bot.event
 async def on_message(message):
     if message.author.bot:
@@ -75,12 +70,6 @@ async def on_message(message):
         ]
         await message.channel.send(random.choice(respostas))
 
-##--- EVENTO DE ENTRADA DE MEMBRO ---##
-@bot.event
-async def on_member_join(membro: discord.Member):
-    canal = bot.get_channel(00000)  # ID do canal
-    if canal:
-        await canal.send(f"{membro.mention} Olá!")
 
 ##--- COMANDO /STATUS ---##
 @bot.tree.command(name="status", description="Verificar a latência do bot")
@@ -91,6 +80,7 @@ async def status(interaction: discord.Interaction):
         f"✅ Está tudo ok! Latência: {latency:.2f} ms\nTempo de atividade: {uptime:.0f} segundos",
         ephemeral=True
     )
+
 
 ##--- COMANDO /INFO ---##
 @bot.tree.command(name="info", description="Informações sobre o bot")
@@ -112,7 +102,7 @@ async def info(interaction: discord.Interaction):
         value=(
             "• `/status`: Verifique a latência do bot e o tempo de atividade.\n"
             "• `/info`: Informações sobre o Ayla Bot.\n"
-            "• `/live`: informações sobre o canal da Viih.\n"
+            "• `/live`: Informações sobre a Live da Viih.\n"
             "• `/divulgar [link]`: Divulgue um link no servidor.\n"
         ),
         inline=False
@@ -128,6 +118,7 @@ async def info(interaction: discord.Interaction):
     info_embed.set_footer(text="Bot criado com 💖 por Chriis ✨", icon_url="https://i.imgur.com/CoCnKIT.jpeg")  # Footer personalizado
 
     await interaction.response.send_message(embed=info_embed)
+
 
 ##--- COMANDO /LIMPAR ---##
 @bot.tree.command(name="limpar", description="Remove uma quantidade de mensagens de um canal")
@@ -145,6 +136,7 @@ async def limpar(interaction: discord.Interaction, quantidade: int):
         await interaction.followup.send("❌ Não tenho permissão para excluir mensagens neste canal.", ephemeral=True)
     except discord.HTTPException as e:
         await interaction.followup.send(f"❌ Ocorreu um erro ao tentar excluir mensagens: {e}", ephemeral=True)
+
 
 ##--- COMANDO /DIVULGAR ---##
 @bot.tree.command(name="divulgar", description="Divulgar uma mensagem")
@@ -176,9 +168,11 @@ async def divulgar(interaction: discord.Interaction, link: str):
 
     await interaction.response.send_message("✅ Mensagem de divulgação enviada com sucesso!", ephemeral=True)
 
-        ##                                ##
-        ##--- COMANDOS DA LIVE DA VIIH ---##
-        ##                                ##
+
+##                                ##
+##--- COMANDOS DA LIVE DA VIIH ---##
+##                                ##
+
 
 ##--- COMANDO /LIVE ---##
 @bot.tree.command(name="live", description="lives da Viih")
@@ -200,6 +194,7 @@ async def info(interaction: discord.Interaction):
     view.add_item(tiktok_button)
 
     await interaction.response.send_message(embed=live_embed, view=view)
+
 
 ##--- COMANDO /DIVULGAR LIVE ---##
 @bot.tree.command(name="divulgar_live", description="Divulga a live da Viih no canal de divulgação")
@@ -248,11 +243,9 @@ async def on_error(event, *args, **kwargs):
     
     print(f"❌ Erro no evento {event}:\n{erro}")  # Mantém o print para debug no terminal
 
-
 @bot.event
 async def on_disconnect():
     print("⚠️   O bot foi desconectado! Tentando reconectar...")
     bot.loop.create_task(change_activity())  # Reinicia a troca de atividades após reconexão
 
-# Inicia o bot com o token carregado
-bot.run(TOKEN)
+bot.run(TOKEN) # Inicia o bot com o token carregado
