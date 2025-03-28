@@ -37,9 +37,10 @@ async def on_ready():
 
 ##--- RICH PRESENCE ---##
 activities = [
-    discord.Game("TL Viih - Discord 🍄"),
+    discord.Game("Jardim da Viih - Discord 🍄"),
     discord.Activity(type=discord.ActivityType.watching, name="Lives da Viih 🍄"),
     discord.Game("Ajudando no servidor 😎"),
+    discord.Game("R.E.P.O."),
     discord.Activity(type=discord.ActivityType.listening, name="Mr. Kitty - After Dark")
 ]
 
@@ -211,7 +212,7 @@ async def divulgar_live(interaction: discord.Interaction):
         return
 
     live_embed = discord.Embed(
-        title="🔴 LIVE AO VIVO!",
+        title="🔴 LIVE ON!",
         description="A Viih está ao vivo! Venha assistir e se divertir! 🌸🎮",
         color=discord.Color.red(),
         url="https://www.twitch.tv/nnico_robiin"
@@ -220,7 +221,7 @@ async def divulgar_live(interaction: discord.Interaction):
     live_embed.add_field(name="🎥 Link da Live:", value="[Clique aqui para assistir!](https://www.twitch.tv/nnico_robiin)", inline=False)
     live_embed.set_footer(text="Apoie a Viih! 💖", icon_url="https://i.imgur.com/zK2DR2F.jpeg")
 
-    await canal_divulgacao.send(f"{cargo_mencao.mention} A Viih está AO VIVO! 🔴", embed=live_embed)
+    await canal_divulgacao.send(f"{cargo_mencao.mention} A Viih está AO VIVO!", embed=live_embed)
     await interaction.response.send_message("✅ Live divulgada com sucesso!", ephemeral=True)
 
 
